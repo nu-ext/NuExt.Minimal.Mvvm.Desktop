@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text.Json;
 
 namespace Minimal.Mvvm.Serialization;
@@ -15,19 +16,16 @@ public static class JsonObjectStateSerializer
     };
 
     /// <summary>
-    /// Deserializes JSON object properties and assigns their values using the specified delegates.
+    /// Deserializes JSON object properties and assigns their values to the specified target.
     /// </summary>
     /// <param name="json">The JSON string containing the object state.</param>
-    /// <param name="getPropertyType">A function that returns the expected type of a property by its name.</param>
-    /// <param name="setPropertyValue">A function that assigns a deserialized value to a property.</param>
+    /// <param name="target">The object whose properties receive the deserialized values.</param>
     /// <param name="options">Options for JSON deserialization.</param>
     /// <returns>
-    /// A dictionary containing properties for which <paramref name="getPropertyType"/> returned
-    /// <see langword="null"/>, or <see langword="null"/> if all properties were recognized.
+    /// A dictionary containing properties the target does not define, or <see langword="null"/>
+    /// if all properties were recognized.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// <paramref name="getPropertyType"/> or <paramref name="setPropertyValue"/> is <see langword="null"/>.
-    /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="target"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">
     /// A deserialized property value could not be assigned.
     /// </exception>
@@ -35,10 +33,9 @@ public static class JsonObjectStateSerializer
     /// The JSON is invalid, does not represent an object, or a property value cannot be deserialized
     /// to its expected type.
     /// </exception>
-    public static Dictionary<string, JsonElement>? Deserialize(string json, Func<string, Type?> getPropertyType, Func<string, object?, bool> setPropertyValue, JsonSerializerOptions? options = null)
+    public static Dictionary<string, JsonElement>? Deserialize(string json, IReflectableProperties target, JsonSerializerOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(getPropertyType);
-        ArgumentNullException.ThrowIfNull(setPropertyValue);
+        ArgumentNullException.ThrowIfNull(target);
 
         if (string.IsNullOrEmpty(json))
         {
@@ -54,9 +51,8 @@ public static class JsonObjectStateSerializer
         {
             string name = property.Name;
             var value = property.Value;
-            var type = getPropertyType(name);
 
-            if (type == null)
+            if (!target.TryGetPropertyType(name, out Type? type))
             {
                 additionalData ??= [];
                 additionalData[name] = value.Clone();
@@ -64,7 +60,7 @@ public static class JsonObjectStateSerializer
             }
 
             var propertyValue = value.Deserialize(type, options);
-            if (!setPropertyValue(name, propertyValue))
+            if (!target.TrySetProperty(name, propertyValue))
             {
                 throw new InvalidOperationException($"Failed to set property '{name}'.");
             }

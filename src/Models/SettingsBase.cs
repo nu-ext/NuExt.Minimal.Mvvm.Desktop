@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -16,7 +17,7 @@ namespace Minimal.Mvvm;
 /// <see cref="ChangeTrackingBase"/>; this class adds a read-only mode, preservation of unknown
 /// JSON properties and reflection-based access to properties by name for JSON round-trips.
 /// </summary>
-public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly
+public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly, IReflectableProperties
 {
     private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
 
@@ -107,39 +108,42 @@ public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly
         return new ReadOnlyDictionary<string, PropertyInfo>(result);
     }
 
-    /// <summary>
-    /// Gets the type of the specified property.
-    /// </summary>
-    /// <param name="propertyName">The name of the property.</param>
-    /// <returns>The type of the property, or null if the property is not found.</returns>
-    public Type? GetPropertyType(string propertyName)
+    /// <inheritdoc />
+    public bool TryGetPropertyType(string propertyName, [NotNullWhen(true)] out Type? propertyType)
     {
-        Debug.Assert(!string.IsNullOrEmpty(propertyName), "propertyName is null or empty");
         ArgumentException.ThrowIfNullOrEmpty(propertyName);
 
-        IReadOnlyDictionary<string, PropertyInfo> properties = GetProperties();
+        if (GetProperties().TryGetValue(propertyName, out PropertyInfo? property))
+        {
+            propertyType = property.PropertyType;
+            return true;
+        }
 
-        Debug.Assert(properties.ContainsKey(propertyName), $"propertyName '{propertyName}' is not defined");
-
-        return properties.TryGetValue(propertyName, out PropertyInfo? property) ? property.PropertyType : null;
+        propertyType = null;
+        return false;
     }
 
-    /// <summary>
-    /// Sets the value of the specified property.
-    /// </summary>
-    /// <param name="propertyName">The name of the property.</param>
-    /// <param name="value">The value to set.</param>
-    /// <returns>true if the property value was set successfully; otherwise, false.</returns>
-    public bool SetProperty(string propertyName, object? value)
+    /// <inheritdoc />
+    public bool TryGetProperty(string propertyName, out object? value)
     {
-        Debug.Assert(!string.IsNullOrEmpty(propertyName), "propertyName is null or empty");
         ArgumentException.ThrowIfNullOrEmpty(propertyName);
 
-        IReadOnlyDictionary<string, PropertyInfo> properties = GetProperties();
+        if (GetProperties().TryGetValue(propertyName, out PropertyInfo? property) && property.CanRead)
+        {
+            value = property.GetValue(this);
+            return true;
+        }
 
-        Debug.Assert(properties.ContainsKey(propertyName), $"propertyName '{propertyName}' is not defined");
+        value = null;
+        return false;
+    }
 
-        if (!properties.TryGetValue(propertyName, out PropertyInfo? property) || !property.CanWrite)
+    /// <inheritdoc />
+    public bool TrySetProperty(string propertyName, object? value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(propertyName);
+
+        if (!GetProperties().TryGetValue(propertyName, out PropertyInfo? property) || !property.CanWrite)
             return false;
 
         property.SetValue(this, value);
