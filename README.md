@@ -7,7 +7,7 @@ A platform-agnostic base layer for desktop MVVM applications. It combines [NuExt
 | Type | Purpose |
 |---|---|
 | `InitializableBase` | Idempotent `Initialize` / `Uninitialize` lifecycle on top of `BindableBase`. |
-| `ChangeTrackingModelBase` | Adds `IChangeTracking` with `AcceptChanges` and suspended tracking. |
+| `ChangeTrackingBase` | Adds `IChangeTracking` with `AcceptChanges` and suspended tracking. |
 | `SettingsBase` | Change tracking plus a read-only mode, unknown-JSON preservation and reflection access by property name. |
 | `ISettingsService` | Loads and saves `SettingsBase` to JSON files. |
 | `ExpandableBase` | `IExpandable` support. |

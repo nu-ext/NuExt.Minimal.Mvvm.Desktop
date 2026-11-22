@@ -8,14 +8,14 @@ namespace Minimal.Mvvm;
 /// <summary>
 /// Provides a base class for models that track changes to their properties.
 /// </summary>
-public abstract class ChangeTrackingModelBase : InitializableBase, IChangeTracking
+public abstract class ChangeTrackingBase : InitializableBase, IChangeTracking
 {
     private sealed class ChangeTrackingSuspender : IDisposable
     {
-        private readonly ChangeTrackingModelBase _owner;
+        private readonly ChangeTrackingBase _owner;
         private int _isDisposed;
 
-        public ChangeTrackingSuspender(ChangeTrackingModelBase owner)
+        public ChangeTrackingSuspender(ChangeTrackingBase owner)
         {
             _owner = owner;
             Interlocked.Increment(ref owner._changeTrackingSuspensionCount);

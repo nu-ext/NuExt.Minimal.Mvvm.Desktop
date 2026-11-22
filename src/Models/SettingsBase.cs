@@ -13,10 +13,10 @@ namespace Minimal.Mvvm;
 
 /// <summary>
 /// Provides a base class for settings objects. Change tracking is inherited from
-/// <see cref="ChangeTrackingModelBase"/>; this class adds a read-only mode, preservation of unknown
+/// <see cref="ChangeTrackingBase"/>; this class adds a read-only mode, preservation of unknown
 /// JSON properties and reflection-based access to properties by name for JSON round-trips.
 /// </summary>
-public abstract class SettingsBase : ChangeTrackingModelBase
+public abstract class SettingsBase : ChangeTrackingBase
 {
     private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
 
