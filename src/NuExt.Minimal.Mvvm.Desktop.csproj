@@ -11,6 +11,10 @@
     <VersionPrefix>0.9.5</VersionPrefix>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1' or '$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net471'">
+    <PackageReference Include="System.Text.Json" Version="11.0.0" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(NuExt_UseLocalProjects)' != 'true'">
     <PackageReference Include="NuExt.Minimal.Mvvm" Version="0.9.1" />
     <PackageReference Include="NuExt.Minimal.Mvvm.SourceGenerator" Version="0.9.4">
@@ -22,7 +26,7 @@
 
   <ItemGroup Condition="'$(NuExt_UseLocalProjects)' == 'true'">
     <ProjectReference Include="..\..\NuExt.Minimal.Mvvm\src\NuExt.Minimal.Mvvm.csproj" />
-    <ProjectReference Include="..\..\NuExt.Minimal.Mvvm.SourceGenerator\src\NuExt.Minimal.Mvvm.SourceGenerator.csproj" />
+    <ProjectReference Include="..\..\NuExt.Minimal.Mvvm.SourceGenerator\src\NuExt.Minimal.Mvvm.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\NuExt.System\src\NuExt.System.csproj" />
   </ItemGroup>
 
