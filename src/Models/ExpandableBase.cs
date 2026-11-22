@@ -5,7 +5,7 @@ namespace Minimal.Mvvm;
 /// <summary>
 /// Represents a base class for models that can be expanded or collapsed.
 /// </summary>
-public abstract partial class ExpandableBase : ModelBase, IExpandable
+public abstract partial class ExpandableBase : InitializableBase, IExpandable
 {
     /// <summary>
     /// Gets or sets a value indicating whether the object is expanded.
