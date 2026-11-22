@@ -1,6 +1,6 @@
 # NuExt.Minimal.Mvvm.Desktop
 
-A platform-agnostic base layer for desktop MVVM applications. It combines [NuExt.Minimal.Mvvm](https://github.com/nu-ext/NuExt.Minimal.Mvvm) with [NuExt.System](https://github.com/nu-ext/NuExt.System) and holds the parts that are useful for any UI stack ù WPF, Avalonia, WinUI, MAUI ù without referencing a single UI framework.
+A platform-agnostic base layer for desktop MVVM applications. It combines [NuExt.Minimal.Mvvm](https://github.com/nu-ext/NuExt.Minimal.Mvvm) with [NuExt.System](https://github.com/nu-ext/NuExt.System) and holds the parts that are useful for any UI stack ? WPF, Avalonia, WinUI, MAUI ? without referencing a single UI framework.
 
 ## Contents
 
@@ -10,8 +10,10 @@ A platform-agnostic base layer for desktop MVVM applications. It combines [NuExt
 | `ModelBase` | Lifecycle plus reflection metadata (`GetPropertyType`, `SetProperty`). |
 | `ChangeTrackingModelBase` | Adds `IChangeTracking` with `AcceptChanges` and suspended tracking. |
 | `SettingsBase` | A model whose properties are its own settings, with dirty-state management. |
+| `ISettingsService` | Loads and saves `SettingsBase` to JSON files. |
 | `ExpandableBase` | `IExpandable` support. |
 | `JsonObjectStateSerializer` | Serializes and restores object state as JSON, keeping unrecognized properties. |
+| `EnvironmentServiceBase` | Application directories: base, config, app data, working, logs, settings. |
 
 ## Targets
 
