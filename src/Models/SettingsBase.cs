@@ -1,48 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace Minimal.Mvvm;
 
 /// <summary>
 /// Provides a base class for settings objects, extending the functionality of <see cref="ModelBase"/>.
-/// This class supports property change notifications, initialization, and dirty state management.
-/// It includes mechanisms to suspend and resume changes, as well as to mark the object as "dirty" when properties change.
+/// Change tracking is inherited from <see cref="ChangeTrackingModelBase"/>; this class adds
+/// a read-only mode and preservation of unknown JSON properties.
 /// </summary>
-public abstract class SettingsBase : ModelBase
+public abstract class SettingsBase : ChangeTrackingModelBase
 {
-    #region Internal Classes
-
-    /// <summary>
-    /// A helper class to manage the suspension of the "dirty" state.
-    /// </summary>
-    private sealed class DirtySuspender : IDisposable
-    {
-        private readonly SettingsBase _owner;
-        private int _isDisposed;
-
-        public DirtySuspender(SettingsBase owner)
-        {
-            _owner = owner;
-            Interlocked.Increment(ref _owner._isDirtySuspended);
-        }
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
-            {
-                Interlocked.Decrement(ref _owner._isDirtySuspended);
-            }
-        }
-    }
-
-    #endregion
-
     #region Properties
 
     /// <summary>
@@ -50,21 +20,6 @@ public abstract class SettingsBase : ModelBase
     /// </summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalData { get; set; }
-
-    /// <summary>
-    /// Gets a value indicating whether the object has been modified since its creation or last reset.
-    /// </summary>
-    [JsonIgnore]
-    public bool IsDirty
-    {
-        get;
-        private set
-        {
-            if (field == value) return;
-            field = value;
-            OnPropertyChanged(EventArgsCache.IsDirtyPropertyChanged);
-        }
-    }
 
     /// <summary>
     /// Gets a value indicating whether property changes are currently suspended.
@@ -79,21 +34,6 @@ public abstract class SettingsBase : ModelBase
             field = value;
             OnPropertyChanged(EventArgsCache.IsSuspendedPropertyChanged);
         }
-    }
-
-    private volatile int _isDirtySuspended;
-    /// <summary>
-    /// Gets a value indicating whether the dirty state tracking is currently suspended.
-    /// </summary>
-    private bool IsDirtySuspended => _isDirtySuspended != 0;
-
-    #endregion
-
-    #region Event Handlers
-
-    private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        MakeDirty(e.PropertyName);
     }
 
     #endregion
@@ -115,46 +55,14 @@ public abstract class SettingsBase : ModelBase
     /// <inheritdoc />
     protected override bool CanSetProperty<T>(T oldValue, T newValue, [CallerMemberName] string? propertyName = null)
     {
-        Debug.Assert(propertyName != nameof(IsDirty) && propertyName != nameof(IsSuspended));
-
         return base.CanSetProperty(oldValue, newValue, propertyName) &&
                !IsSuspended && IsValidPropertyValue(propertyName, newValue);
     }
 
-    /// <summary>
-    /// Marks the object as dirty based on the provided property name.
-    /// </summary>
-    /// <param name="propertyName">The name of the property that has been changed.</param>
-    protected void MakeDirty(string? propertyName)
-    {
-        if (!IsInitialized || IsDirtySuspended ||
-            propertyName is null or nameof(IsInitialized) or nameof(IsDirty) or nameof(IsSuspended))
-        {
-            return;
-        }
-        IsDirty = true;
-    }
-
     /// <inheritdoc />
-    protected override void InitializeCore()
+    protected override bool IsTrackedProperty(string? propertyName)
     {
-        base.InitializeCore();
-        PropertyChanged += OnPropertyChanged;
-    }
-
-    /// <inheritdoc />
-    protected override void UninitializeCore()
-    {
-        PropertyChanged -= OnPropertyChanged;
-        base.UninitializeCore();
-    }
-
-    /// <summary>
-    /// Resets the dirty state of the object.
-    /// </summary>
-    public void ResetDirty()
-    {
-        IsDirty = false;
+        return base.IsTrackedProperty(propertyName) && propertyName != nameof(IsSuspended);
     }
 
     /// <summary>
@@ -173,20 +81,10 @@ public abstract class SettingsBase : ModelBase
         IsSuspended = true;
     }
 
-    /// <summary>
-    /// Suspends the dirty state tracking and returns a disposable object that resumes it when disposed.
-    /// </summary>
-    /// <returns>A disposable object that resumes dirty state tracking when disposed.</returns>
-    public IDisposable SuspendDirty()
-    {
-        return new DirtySuspender(this);
-    }
-
     #endregion
 }
 
 internal static partial class EventArgsCache
 {
-    internal static readonly PropertyChangedEventArgs IsDirtyPropertyChanged = new(nameof(SettingsBase.IsDirty));
     internal static readonly PropertyChangedEventArgs IsSuspendedPropertyChanged = new(nameof(SettingsBase.IsSuspended));
 }

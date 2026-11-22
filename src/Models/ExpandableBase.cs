@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace Minimal.Mvvm.Wpf;
+namespace Minimal.Mvvm;
 
 /// <summary>
 /// Represents a base class for models that can be expanded or collapsed.
