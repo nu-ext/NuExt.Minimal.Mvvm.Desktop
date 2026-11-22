@@ -16,7 +16,7 @@ namespace Minimal.Mvvm;
 /// <see cref="ChangeTrackingBase"/>; this class adds a read-only mode, preservation of unknown
 /// JSON properties and reflection-based access to properties by name for JSON round-trips.
 /// </summary>
-public abstract class SettingsBase : ChangeTrackingBase
+public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly
 {
     private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
 
@@ -31,17 +31,17 @@ public abstract class SettingsBase : ChangeTrackingBase
     public Dictionary<string, JsonElement>? AdditionalData { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether property changes are currently suspended.
+    /// Gets a value indicating whether property writes are currently rejected.
     /// </summary>
     [JsonIgnore]
-    public bool IsSuspended
+    public bool IsReadOnly
     {
         get;
         private set
         {
             if (field == value) return;
             field = value;
-            OnPropertyChanged(EventArgsCache.IsSuspendedPropertyChanged);
+            OnPropertyChanged(EventArgsCache.IsReadOnlyPropertyChanged);
         }
     }
 
@@ -65,13 +65,13 @@ public abstract class SettingsBase : ChangeTrackingBase
     protected override bool CanSetProperty<T>(T oldValue, T newValue, [CallerMemberName] string? propertyName = null)
     {
         return base.CanSetProperty(oldValue, newValue, propertyName) &&
-               !IsSuspended && IsValidPropertyValue(propertyName, newValue);
+               !IsReadOnly && IsValidPropertyValue(propertyName, newValue);
     }
 
     /// <inheritdoc />
     protected override bool IsTrackedProperty(string? propertyName)
     {
-        return base.IsTrackedProperty(propertyName) && propertyName != nameof(IsSuspended);
+        return base.IsTrackedProperty(propertyName) && propertyName != nameof(IsReadOnly);
     }
 
     /// <summary>
@@ -147,19 +147,20 @@ public abstract class SettingsBase : ChangeTrackingBase
     }
 
     /// <summary>
-    /// Resumes property changes after they were suspended.
+    /// Switches the object to a read-only state so that property writes are rejected.
     /// </summary>
-    public void ResumeChanges()
+    /// <remarks>Every call must be paired with <see cref="EndReadOnly"/>.</remarks>
+    public void BeginReadOnly()
     {
-        IsSuspended = false;
+        IsReadOnly = true;
     }
 
     /// <summary>
-    /// Suspends property changes.
+    /// Switches the object back to a writable state.
     /// </summary>
-    public void SuspendChanges()
+    public void EndReadOnly()
     {
-        IsSuspended = true;
+        IsReadOnly = false;
     }
 
     #endregion
@@ -167,5 +168,5 @@ public abstract class SettingsBase : ChangeTrackingBase
 
 internal static partial class EventArgsCache
 {
-    internal static readonly PropertyChangedEventArgs IsSuspendedPropertyChanged = new(nameof(SettingsBase.IsSuspended));
+    internal static readonly PropertyChangedEventArgs IsReadOnlyPropertyChanged = new(nameof(SettingsBase.IsReadOnly));
 }
