@@ -1,6 +1,4 @@
 using System;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
@@ -27,8 +25,8 @@ public partial class KeyValueSetting : ChangeTrackingBase
     /// <summary>
     /// Setting value type.
     /// </summary>
-    [Notify]
-    public required partial string ValueType { get; init; }
+    [Notify(CallbackName = nameof(OnValueTypeChanged))]
+    public required partial Type ValueType { get; init; }
 
     /// <summary>
     /// Gets or sets the value as a string.
@@ -36,7 +34,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public string ValueAsString
     {
         get => DeserializeSettingValue<string>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.String);
+        set => SetValue(value, typeof(string));
     }
 
     /// <summary>
@@ -45,7 +43,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public int ValueAsInt32
     {
         get => DeserializeSettingValue<int>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Integer);
+        set => SetValue(value, typeof(long));
     }
 
     /// <summary>
@@ -54,7 +52,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public long ValueAsInt64
     {
         get => DeserializeSettingValue<long>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Integer);
+        set => SetValue(value, typeof(long));
     }
 
     /// <summary>
@@ -63,7 +61,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public double ValueAsDouble
     {
         get => DeserializeSettingValue<double>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Real);
+        set => SetValue(value, typeof(double));
     }
 
     /// <summary>
@@ -72,7 +70,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public bool ValueAsBoolean
     {
         get => DeserializeSettingValue<bool>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Boolean);
+        set => SetValue(value, typeof(bool));
     }
 
 #if NET6_0_OR_GREATER
@@ -82,7 +80,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public DateOnly ValueAsDate
     {
         get => DeserializeSettingValue<DateOnly>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Date);
+        set => SetValue(value, typeof(DateOnly));
     }
 #else
     /// <summary>
@@ -91,7 +89,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public DateTime ValueAsDate
     {
         get => DeserializeSettingValue<DateTime>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Date);
+        set => SetValue(value, typeof(DateTime));
     }
 #endif
 
@@ -101,7 +99,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public DateTimeOffset ValueAsDateTime
     {
         get => DeserializeSettingValue<DateTimeOffset>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.DateTime);
+        set => SetValue(value, typeof(DateTimeOffset));
     }
 
     /// <summary>
@@ -110,69 +108,134 @@ public partial class KeyValueSetting : ChangeTrackingBase
     public JsonNode ValueAsJson
     {
         get => DeserializeSettingValue<JsonNode>(Value, ValueType);
-        set => SetValue(value, SettingValueTypes.Json);
+        set => SetValue(value, typeof(JsonNode));
     }
+
+    /// <summary>
+    /// Gets the value deserialized to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the value to.</typeparam>
+    /// <returns>The deserialized value.</returns>
+    /// <exception cref="InvalidOperationException">The value cannot be read as <typeparamref name="T"/>.</exception>
+    public T GetValue<T>() => DeserializeSettingValue<T>(Value, ValueType);
 
     private void OnValueChanged()
     {
         if (!IsInitialized) return;
 
-        Debug.Assert(!string.IsNullOrWhiteSpace(ValueType), "ValueType should not be null or whitespace.");
-        switch (ValueType)
+        Type valueType = ValueType;
+        if (valueType == typeof(string))
         {
-            case SettingValueTypes.String:
-                OnPropertyChanged(nameof(ValueAsString));
-                break;
-            case SettingValueTypes.Integer:
-                RaisePropertiesChanged(nameof(ValueAsInt32), nameof(ValueAsInt64));
-                break;
-            case SettingValueTypes.Real:
-                OnPropertyChanged(nameof(ValueAsDouble));
-                break;
-            case SettingValueTypes.Boolean:
-                OnPropertyChanged(nameof(ValueAsBoolean));
-                break;
-            case SettingValueTypes.Date:
-                OnPropertyChanged(nameof(ValueAsDate));
-                break;
-            case SettingValueTypes.DateTime:
-                OnPropertyChanged(nameof(ValueAsDateTime));
-                break;
-            case SettingValueTypes.Json:
-                OnPropertyChanged(nameof(ValueAsJson));
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported setting value type '{ValueType}'.");
+            OnPropertyChanged(nameof(ValueAsString));
         }
+        else if (valueType == typeof(int) || valueType == typeof(long))
+        {
+            RaisePropertiesChanged(nameof(ValueAsInt32), nameof(ValueAsInt64));
+        }
+        else if (valueType == typeof(double))
+        {
+            OnPropertyChanged(nameof(ValueAsDouble));
+        }
+        else if (valueType == typeof(bool))
+        {
+            OnPropertyChanged(nameof(ValueAsBoolean));
+        }
+#if NET6_0_OR_GREATER
+        else if (valueType == typeof(DateOnly))
+#else
+        else if (valueType == typeof(DateTime))
+#endif
+        {
+            OnPropertyChanged(nameof(ValueAsDate));
+        }
+        else if (valueType == typeof(DateTimeOffset))
+        {
+            OnPropertyChanged(nameof(ValueAsDateTime));
+        }
+        else if (valueType == typeof(JsonNode))
+        {
+            OnPropertyChanged(nameof(ValueAsJson));
+        }
+    }
+
+    private void OnValueTypeChanged()
+    {
+        Type valueType = ValueType;
+        if (valueType == typeof(string) ||
+            valueType == typeof(int) ||
+            valueType == typeof(long) ||
+            valueType == typeof(double) ||
+            valueType == typeof(bool) ||
+#if NET6_0_OR_GREATER
+            valueType == typeof(DateOnly) ||
+#else
+            valueType == typeof(DateTime) ||
+#endif
+            valueType == typeof(DateTimeOffset) ||
+            valueType == typeof(JsonNode))
+        {
+            return;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(ValueType), valueType, "Unsupported setting value type.");
     }
 
     /// <summary>
     /// Serializes the specified value to its raw string representation for the given value type.
     /// </summary>
     /// <param name="value">The value to serialize.</param>
-    /// <param name="valueType">The value type discriminator.</param>
+    /// <param name="valueType">The value type.</param>
     /// <returns>The raw string representation of the value.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> or <paramref name="valueType"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="valueType"/> is not supported.</exception>
-    public static string SerializeSettingValue(object value, string valueType)
+    public static string SerializeSettingValue(object value, Type valueType)
     {
         ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(valueType);
 
-        return valueType switch
+        if (valueType == typeof(string))
         {
-            SettingValueTypes.String => (string)value,
-            SettingValueTypes.Integer => Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
-            SettingValueTypes.Real => Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString("R", CultureInfo.InvariantCulture),
-            SettingValueTypes.Boolean => Convert.ToBoolean(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+            return (string)value;
+        }
+
+        if (valueType == typeof(int) || valueType == typeof(long))
+        {
+            return Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (valueType == typeof(double))
+        {
+            return Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        if (valueType == typeof(bool))
+        {
+            return Convert.ToBoolean(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+        }
+
 #if NET6_0_OR_GREATER
-            SettingValueTypes.Date => ((DateOnly)value).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        if (valueType == typeof(DateOnly))
+        {
+            return ((DateOnly)value).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
 #else
-            SettingValueTypes.Date => ((DateTime)value).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        if (valueType == typeof(DateTime))
+        {
+            return ((DateTime)value).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
 #endif
-            SettingValueTypes.DateTime => ((DateTimeOffset)value).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-            SettingValueTypes.Json => ((JsonNode)value).ToJsonString(),
-            _ => throw new ArgumentOutOfRangeException(nameof(valueType), valueType, "Unsupported setting value type.")
-        };
+
+        if (valueType == typeof(DateTimeOffset))
+        {
+            return ((DateTimeOffset)value).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (valueType == typeof(JsonNode))
+        {
+            return ((JsonNode)value).ToJsonString();
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(valueType), valueType, "Unsupported setting value type.");
     }
 
     /// <summary>
@@ -180,34 +243,79 @@ public partial class KeyValueSetting : ChangeTrackingBase
     /// </summary>
     /// <typeparam name="T">The type to deserialize the value to.</typeparam>
     /// <param name="value">The raw string value.</param>
-    /// <param name="valueType">The value type discriminator.</param>
+    /// <param name="valueType">The value type.</param>
     /// <returns>The deserialized value.</returns>
     /// <exception cref="InvalidOperationException">The value cannot be read as <typeparamref name="T"/>.</exception>
     /// <exception cref="FormatException">The JSON value is <see langword="null"/>.</exception>
-    public static T DeserializeSettingValue<T>(string value, string valueType)
+    public static T DeserializeSettingValue<T>(string value, Type valueType)
     {
-        object result = valueType switch
+        if (valueType == typeof(string) && typeof(T) == typeof(string))
         {
-            SettingValueTypes.String when typeof(T) == typeof(string) => value,
-            SettingValueTypes.Integer when typeof(T) == typeof(long) => long.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture),
-            SettingValueTypes.Integer when typeof(T) == typeof(int) => int.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture),
-            SettingValueTypes.Real when typeof(T) == typeof(double) => double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture),
-            SettingValueTypes.Boolean when typeof(T) == typeof(bool) => bool.Parse(value),
-#if NET6_0_OR_GREATER
-            SettingValueTypes.Date when typeof(T) == typeof(DateOnly) => DateOnly.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture),
-#else
-            SettingValueTypes.Date when typeof(T) == typeof(DateTime) => DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture),
-#endif
-            SettingValueTypes.DateTime when typeof(T) == typeof(DateTimeOffset) => DateTimeOffset.ParseExact(value, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-            SettingValueTypes.Json when typeof(T) == typeof(JsonNode) => JsonNode.Parse(value)
-                                                                  ?? throw new FormatException("The JSON setting value cannot be null."),
-            _ => throw new InvalidOperationException($"Setting value type '{valueType}' cannot be read as '{typeof(T).Name}'.")
-        };
+            return (T)(object)value;
+        }
 
-        return (T)result;
+        if (valueType == typeof(int) || valueType == typeof(long))
+        {
+            long longValue = long.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+
+            if (typeof(T) == typeof(long))
+            {
+                return (T)(object)longValue;
+            }
+
+            if (typeof(T) == typeof(int))
+            {
+                return (T)(object)checked((int)longValue);
+            }
+
+            if (typeof(T) == typeof(short))
+            {
+                return (T)(object)checked((short)longValue);
+            }
+
+            if (typeof(T) == typeof(byte))
+            {
+                return (T)(object)checked((byte)longValue);
+            }
+        }
+
+        if (valueType == typeof(double) && typeof(T) == typeof(double))
+        {
+            return (T)(object)double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture);
+        }
+
+        if (valueType == typeof(bool) && typeof(T) == typeof(bool))
+        {
+            return (T)(object)bool.Parse(value);
+        }
+
+#if NET6_0_OR_GREATER
+        if (valueType == typeof(DateOnly) && typeof(T) == typeof(DateOnly))
+        {
+            return (T)(object)DateOnly.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+#else
+        if (valueType == typeof(DateTime) && typeof(T) == typeof(DateTime))
+        {
+            return (T)(object)DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+#endif
+
+        if (valueType == typeof(DateTimeOffset) && typeof(T) == typeof(DateTimeOffset))
+        {
+            return (T)(object)DateTimeOffset.ParseExact(value, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        }
+
+        if (valueType == typeof(JsonNode) && typeof(T) == typeof(JsonNode))
+        {
+            return (T)(object)(JsonNode.Parse(value)
+                               ?? throw new FormatException("The JSON setting value cannot be null."));
+        }
+
+        throw new InvalidOperationException($"Setting value type '{valueType}' cannot be read as '{typeof(T).Name}'.");
     }
 
-    private void SetValue(object value, string expectedValueType, [CallerMemberName] string? propertyName = null)
+    private void SetValue(object value, Type expectedValueType, [CallerMemberName] string? propertyName = null)
     {
         EnsureValueType(expectedValueType);
 
@@ -217,9 +325,9 @@ public partial class KeyValueSetting : ChangeTrackingBase
         }
     }
 
-    private void EnsureValueType(string expectedValueType)
+    private void EnsureValueType(Type expectedValueType)
     {
-        if (!StringComparer.Ordinal.Equals(ValueType, expectedValueType))
+        if (ValueType != expectedValueType)
         {
             throw new InvalidOperationException($"Setting value type is '{ValueType}', but '{expectedValueType}' was requested.");
         }

@@ -41,5 +41,5 @@ public readonly record struct SettingChangedEventArgs
     /// <summary>
     /// Type of the changed setting value.
     /// </summary>
-    public string ValueType => Setting.ValueType;
+    public Type ValueType => Setting.ValueType;
 }
