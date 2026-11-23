@@ -12,13 +12,12 @@ A platform-agnostic base layer for desktop MVVM applications. It combines [NuExt
 | `ISettingsService` | Loads and saves `SettingsBase` to JSON files. |
 | `KeyValueSetting` | A single named setting stored as a raw string with an explicit `Type`, typed accessors and `GetValue<T>()`. |
 | `KeyValueSettingCollection` | Change-tracked collection of `KeyValueSetting` that raises `SettingChanged`. |
-| `SettingValueTypes` | Persisted value-type tokens and `Type` to token mapping for storage layers. |
 | `SettingChangedEventArgs` | Notification payload for a changed setting value. |
 | `ExpandableBase` | `IExpandable` support. |
 | `JsonObjectStateSerializer` | Serializes and restores object state as JSON, keeping unrecognized properties. |
 | `EnvironmentServiceBase` | Application directories: base, config, app data, working, logs, settings. |
 
-Two settings pipelines are intentionally separate. `SettingsBase` with `ISettingsService` persists a strongly typed object graph as JSON. `KeyValueSetting` with `KeyValueSettingCollection` models flat key/value rows: each value is a raw string converted on demand using `ValueType`, which is what a database-backed settings table stores. `SettingValueTypes` bridges `Type` and the persisted token.
+Two settings pipelines are intentionally separate. `SettingsBase` with `ISettingsService` persists a strongly typed object graph as JSON. `KeyValueSetting` with `KeyValueSettingCollection` models flat key/value rows: each value is a raw string converted on demand using `ValueType`, which is what a database-backed settings table stores.
 
 ## Targets
 
