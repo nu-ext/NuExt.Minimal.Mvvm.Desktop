@@ -7,7 +7,7 @@
     <Description>A platform-agnostic base layer for desktop MVVM applications, combining NuExt.Minimal.Mvvm with NuExt.System: models with a deterministic lifecycle, change tracking, and settings infrastructure shared by WPF, Avalonia, WinUI, and MAUI.</Description>
     <RootNamespace>Minimal.Mvvm</RootNamespace>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591;NETSDK1233</NoWarn>
+    <NoWarn>$(NoWarn);NETSDK1233</NoWarn>
     <VersionPrefix>0.9.5</VersionPrefix>
   </PropertyGroup>
 
