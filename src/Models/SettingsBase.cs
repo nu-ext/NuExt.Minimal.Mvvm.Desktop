@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Minimal.Mvvm.Reflection;
 
 namespace Minimal.Mvvm;
 
@@ -19,10 +16,6 @@ namespace Minimal.Mvvm;
 /// </summary>
 public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly, IReflectableProperties
 {
-    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
-
-    private static readonly Func<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typePropertiesFactory = GetProperties;
-
     #region Properties
 
     /// <summary>
@@ -75,80 +68,17 @@ public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly, IRefl
         return base.IsTrackedProperty(propertyName) && propertyName != nameof(IsReadOnly);
     }
 
-    /// <summary>
-    /// Gets the properties of the current type that participate in serialization.
-    /// </summary>
-    /// <returns>A dictionary containing property information.</returns>
-    protected IReadOnlyDictionary<string, PropertyInfo> GetProperties()
-    {
-        return s_typeProperties.GetOrAdd(GetType(), s_typePropertiesFactory);
-    }
-
-    /// <summary>
-    /// Builds the serializable property map for the specified type.
-    /// </summary>
-    /// <param name="type">The type to get properties for.</param>
-    /// <returns>A dictionary containing property information.</returns>
-    private static IReadOnlyDictionary<string, PropertyInfo> GetProperties(Type type)
-    {
-        var properties = type.GetAllProperties(typeof(SettingsBase), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        var result = new Dictionary<string, PropertyInfo>();
-
-        foreach (PropertyInfo property in properties)
-        {
-            if (property.GetCustomAttribute<JsonIgnoreAttribute>() != null) continue;
-            if (property.GetCustomAttribute<JsonExtensionDataAttribute>() != null) continue;
-
-            if (result.TryAdd(property.Name, property))
-                continue;
-
-            Debug.Assert(property.GetMethod?.IsVirtual == true, $"Property '{property.Name}' is not virtual");
-        }
-
-        return new ReadOnlyDictionary<string, PropertyInfo>(result);
-    }
+    /// <inheritdoc />
+    public bool TryGetPropertyType(string propertyName, [NotNullWhen(true)] out Type? propertyType) =>
+        PropertyHelper.TryGetPropertyType(this, propertyName, out propertyType);
 
     /// <inheritdoc />
-    public bool TryGetPropertyType(string propertyName, [NotNullWhen(true)] out Type? propertyType)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(propertyName);
-
-        if (GetProperties().TryGetValue(propertyName, out PropertyInfo? property))
-        {
-            propertyType = property.PropertyType;
-            return true;
-        }
-
-        propertyType = null;
-        return false;
-    }
+    public bool TryGetProperty(string propertyName, out object? value) =>
+        PropertyHelper.TryGetProperty(this, propertyName, out value);
 
     /// <inheritdoc />
-    public bool TryGetProperty(string propertyName, out object? value)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(propertyName);
-
-        if (GetProperties().TryGetValue(propertyName, out PropertyInfo? property) && property.CanRead)
-        {
-            value = property.GetValue(this);
-            return true;
-        }
-
-        value = null;
-        return false;
-    }
-
-    /// <inheritdoc />
-    public bool TrySetProperty(string propertyName, object? value)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(propertyName);
-
-        if (!GetProperties().TryGetValue(propertyName, out PropertyInfo? property) || !property.CanWrite)
-            return false;
-
-        property.SetValue(this, value);
-        return true;
-    }
+    public bool TrySetProperty(string propertyName, object? value) =>
+        PropertyHelper.TrySetProperty(this, propertyName, value);
 
     /// <summary>
     /// Switches the object to a read-only state so that property writes are rejected.
