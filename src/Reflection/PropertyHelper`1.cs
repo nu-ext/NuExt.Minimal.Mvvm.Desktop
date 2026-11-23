@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 namespace Minimal.Mvvm.Reflection;
@@ -13,13 +13,13 @@ namespace Minimal.Mvvm.Reflection;
 /// Provides reflection-based access to the serializable properties of objects.
 /// </summary>
 /// <remarks>
-/// The property map is cached per concrete runtime type. Properties marked with
-/// <see cref="JsonIgnoreAttribute"/> or <see cref="JsonExtensionDataAttribute"/> are excluded.
+/// The property map is cached per concrete runtime type and does not keep the type alive.
+/// Properties marked with <see cref="JsonIgnoreAttribute"/> or <see cref="JsonExtensionDataAttribute"/>
+/// are excluded.
 /// </remarks>
 public static class PropertyHelper
 {
-    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
-    private static readonly Func<Type, Type, IReadOnlyDictionary<string, PropertyInfo>> s_typePropertiesFactory = GetProperties;
+    private static readonly ConditionalWeakTable<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
 
     /// <summary>
     /// Builds the serializable property map for the specified type.
@@ -56,7 +56,7 @@ public static class PropertyHelper
     public static IReadOnlyDictionary<string, PropertyInfo> GetProperties<T>(T obj)
     {
         ArgumentNullException.ThrowIfNull(obj);
-        return s_typeProperties.GetOrAdd(obj.GetType(), type => s_typePropertiesFactory(typeof(T), type));
+        return s_typeProperties.GetValue(obj.GetType(), static type => GetProperties(typeof(T), type));
     }
 
     /// <summary>
