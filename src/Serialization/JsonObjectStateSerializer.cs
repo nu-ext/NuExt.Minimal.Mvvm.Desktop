@@ -33,7 +33,7 @@ public static class JsonObjectStateSerializer
     /// The JSON is invalid, does not represent an object, or a property value cannot be deserialized
     /// to its expected type.
     /// </exception>
-    public static Dictionary<string, JsonElement>? Deserialize(string json, IReflectableProperties target, JsonSerializerOptions? options = null)
+    public static Dictionary<string, JsonElement>? Deserialize(string json, IPropertyBag target, JsonSerializerOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(target);
 

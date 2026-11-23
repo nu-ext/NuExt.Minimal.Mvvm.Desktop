@@ -14,7 +14,7 @@ namespace Minimal.Mvvm;
 /// <see cref="ChangeTrackingBase"/>; this class adds a read-only mode, preservation of unknown
 /// JSON properties and reflection-based access to properties by name for JSON round-trips.
 /// </summary>
-public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly, IReflectableProperties
+public abstract class SettingsBase : ChangeTrackingBase, ISupportReadOnly, IPropertyBag
 {
     #region Properties
 
