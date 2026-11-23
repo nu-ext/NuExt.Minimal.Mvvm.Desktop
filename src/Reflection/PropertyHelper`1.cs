@@ -19,7 +19,7 @@ namespace Minimal.Mvvm.Reflection;
 /// </remarks>
 public static class PropertyHelper
 {
-    private static readonly ConditionalWeakTable<Type, IReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
+    private static readonly ConditionalWeakTable<Type, ReadOnlyDictionary<string, PropertyInfo>> s_typeProperties = new();
 
     /// <summary>
     /// Builds the serializable property map for the specified type.
@@ -27,7 +27,7 @@ public static class PropertyHelper
     /// <param name="baseType">The type up to which the property hierarchy is walked.</param>
     /// <param name="type">The type to get properties for.</param>
     /// <returns>A dictionary containing property information.</returns>
-    private static IReadOnlyDictionary<string, PropertyInfo> GetProperties(Type baseType, Type type)
+    private static ReadOnlyDictionary<string, PropertyInfo> GetProperties(Type baseType, Type type)
     {
         var properties = type.GetAllProperties(baseType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         var result = new Dictionary<string, PropertyInfo>();
