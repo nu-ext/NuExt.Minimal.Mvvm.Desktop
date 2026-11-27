@@ -1,7 +1,10 @@
 using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Unicode;
 
 namespace Minimal.Mvvm;
 
@@ -10,6 +13,15 @@ namespace Minimal.Mvvm;
 /// </summary>
 public partial class KeyValueSetting : ChangeTrackingBase
 {
+    /// <summary>
+    /// Keeps non-ASCII text (file paths, localized names) readable in the stored value instead of escaping it.
+    /// </summary>
+    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
+    {
+        // Unicode characters are stored as is; the markup-sensitive ones (<, >, &) stay escaped.
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+    };
+
     /// <summary>
     /// Setting name.
     /// </summary>
@@ -232,7 +244,7 @@ public partial class KeyValueSetting : ChangeTrackingBase
 
         if (valueType == typeof(JsonNode))
         {
-            return ((JsonNode)value).ToJsonString();
+            return ((JsonNode)value).ToJsonString(s_jsonSerializerOptions);
         }
 
         throw new ArgumentOutOfRangeException(nameof(valueType), valueType, "Unsupported setting value type.");
